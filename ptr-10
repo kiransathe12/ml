@@ -1,0 +1,249 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# ==========================================
+# Q-LEARNING IN GRID WORLD (5x5)
+# ==========================================
+
+np.random.seed(42)
+
+N = 5
+START = (4, 0)
+GOAL = (0, 4)
+
+# Actions: Up, Down, Left, Right
+MOVES = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+ARROWS = ["↑", "↓", "←", "→"]
+
+# Q-table
+Q = np.zeros((N, N, 4))
+
+# Hyperparameters
+alpha = 0.1
+gamma = 0.95
+eps = 1.0
+eps_min = 0.05
+decay = 0.995
+
+episodes = 2000
+max_steps = 100
+eval_episodes = 100
+
+# ==========================================
+# ENVIRONMENT FUNCTION
+# ==========================================
+
+def step(state, action):
+
+    r = state[0] + MOVES[action][0]
+    c = state[1] + MOVES[action][1]
+
+    next_state = (
+        min(max(r, 0), N - 1),
+        min(max(c, 0), N - 1)
+    )
+
+    reward = 10 if next_state == GOAL else -1
+    done = next_state == GOAL
+
+    return next_state, reward, done
+
+
+# ==========================================
+# Q-LEARNING TRAINING
+# ==========================================
+
+rewards = []
+eps_history = []
+steps_history = []
+success_history = []
+
+for ep in range(episodes):
+
+    state = START
+    total_reward = 0
+    success = False
+
+    for _ in range(max_steps):
+
+        # Epsilon-greedy action selection
+        if np.random.rand() < eps:
+            action = np.random.randint(4)
+        else:
+            action = np.argmax(Q[state])
+
+        # Take action
+        next_state, reward, done = step(state, action)
+
+        # Q-learning update
+        future_value = 0 if done else np.max(Q[next_state])
+
+        Q[state][action] += alpha * (
+            reward + gamma * future_value - Q[state][action]
+        )
+
+        state = next_state
+        total_reward += reward
+
+        if done:
+            success = True
+            break
+
+    # Store training results
+    rewards.append(total_reward)
+    steps_history.append(_ + 1)
+    success_history.append(success)
+    eps_history.append(eps)
+
+    # Epsilon decay
+    eps = max(eps_min, eps * decay)
+
+
+# ==========================================
+# EVALUATION (100 GREEDY RUNS)
+# ==========================================
+
+eval_success = 0
+eval_steps = []
+
+for ep in range(eval_episodes):
+
+    state = START
+    visited = {state}
+    steps = 0
+
+    for _ in range(25):
+
+        action = np.argmax(Q[state])
+
+        next_state, reward, done = step(state, action)
+
+        steps += 1
+
+        if done:
+            eval_success += 1
+            eval_steps.append(steps)
+            break
+
+        if next_state in visited:
+            break
+
+        visited.add(next_state)
+        state = next_state
+
+success_rate = (eval_success / eval_episodes) * 100
+
+avg_steps = (
+    np.mean(eval_steps) if eval_steps else 0
+)
+
+
+# ==========================================
+# DISPLAY RESULTS
+# ==========================================
+
+print("========== Q-LEARNING RESULTS ==========")
+
+print("Goal reached:", eval_success > 0)
+print("Evaluation Success Rate:", success_rate, "%")
+print("Average Steps to Goal:", avg_steps)
+
+print("\nLearned Policy:")
+
+policy = []
+
+for r in range(N):
+
+    row = []
+
+    for c in range(N):
+
+        if (r, c) == START:
+            row.append("S")
+
+        elif (r, c) == GOAL:
+            row.append("G")
+
+        else:
+            action = np.argmax(Q[r, c])
+            row.append(ARROWS[action])
+
+    policy.append(row)
+
+for row in policy:
+    print(" ".join(row))
+
+
+# ==========================================
+# PERFORMANCE ANALYSIS
+# ==========================================
+
+print("\n========== PERFORMANCE ANALYSIS ==========")
+
+print("First 100 Episodes Average Reward:",
+      np.mean(rewards[:100]))
+
+print("Last 100 Episodes Average Reward:",
+      np.mean(rewards[-100:]))
+
+print("First 100 Episodes Average Steps:",
+      np.mean(steps_history[:100]))
+
+print("Last 100 Episodes Average Steps:",
+      np.mean(steps_history[-100:]))
+
+print("Training Success Rate:",
+      np.mean(success_history) * 100, "%")
+
+
+# ==========================================
+# PLOTTING RESULTS
+# ==========================================
+
+fig, ax = plt.subplots(1, 3, figsize=(16, 5))
+
+# Plot 1: Average Reward
+moving_avg = np.convolve(
+    rewards,
+    np.ones(100) / 100,
+    mode="valid"
+)
+
+ax[0].plot(moving_avg)
+ax[0].set_title("Average Reward (100 Episodes)")
+ax[0].set_xlabel("Episode")
+ax[0].set_ylabel("Average Reward")
+ax[0].grid(True)
+
+
+# Plot 2: Epsilon Decay
+ax[1].plot(eps_history)
+ax[1].set_title("Exploration-Exploitation (Epsilon Decay)")
+ax[1].set_xlabel("Episode")
+ax[1].set_ylabel("Epsilon")
+ax[1].grid(True)
+
+
+# Plot 3: Learned Policy
+for r in range(N):
+
+    for c in range(N):
+
+        ax[2].text(
+            c,
+            r,
+            policy[r][c],
+            ha="center",
+            va="center",
+            fontsize=18
+        )
+
+ax[2].set_xlim(-0.5, N - 0.5)
+ax[2].set_ylim(N - 0.5, -0.5)
+ax[2].set_xticks(range(N))
+ax[2].set_yticks(range(N))
+ax[2].set_title("Learned Policy (S = Start, G = Goal)")
+ax[2].grid(True)
+
+plt.tight_layout()
+plt.show()
