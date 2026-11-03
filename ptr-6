@@ -1,0 +1,108 @@
+# Assignment 6 – Support Vector Machine
+# Linear SVM and Nonlinear (RBF) SVM on Wine Dataset
+
+# Step 1: Import Libraries
+import pandas as pd
+from sklearn.datasets import load_wine
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix
+)
+
+# Step 2: Load Wine Dataset
+wine = load_wine()
+
+df = pd.DataFrame(wine.data, columns=wine.feature_names)
+df['target'] = wine.target
+
+print("Wine Dataset:")
+print(df.head())
+
+print("\nDataset Shape:", df.shape)
+print("\nTarget Classes:")
+print(df['target'].value_counts())
+
+# Step 3: Separate Input and Output Variables
+X = df.drop(columns=['target'])
+y = df['target']
+
+# Step 4: Split Dataset into Training and Testing Sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.20,
+    random_state=42,
+    stratify=y
+)
+
+print("\nTraining Samples:", len(X_train))
+print("Testing Samples:", len(X_test))
+
+# Step 5: Standardize the Data
+scaler = StandardScaler()
+
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Step 6: Train Linear SVM Model
+linear_svm = SVC(kernel='linear')
+
+linear_svm.fit(X_train, y_train)
+
+y_pred_linear = linear_svm.predict(X_test)
+
+# Step 7: Train Nonlinear SVM Model using RBF Kernel
+rbf_svm = SVC(kernel='rbf')
+
+rbf_svm.fit(X_train, y_train)
+
+y_pred_rbf = rbf_svm.predict(X_test)
+
+# Step 8: Evaluate Linear SVM
+linear_results = [
+    accuracy_score(y_test, y_pred_linear),
+    precision_score(y_test, y_pred_linear, average='weighted'),
+    recall_score(y_test, y_pred_linear, average='weighted'),
+    f1_score(y_test, y_pred_linear, average='weighted')
+]
+
+# Step 9: Evaluate RBF SVM
+rbf_results = [
+    accuracy_score(y_test, y_pred_rbf),
+    precision_score(y_test, y_pred_rbf, average='weighted'),
+    recall_score(y_test, y_pred_rbf, average='weighted'),
+    f1_score(y_test, y_pred_rbf, average='weighted')
+]
+
+# Step 10: Compare Both Models
+comparison = pd.DataFrame(
+    [linear_results, rbf_results],
+    index=['Linear SVM', 'RBF SVM'],
+    columns=['Accuracy', 'Precision', 'Recall', 'F1-score']
+)
+
+print("\n========== PERFORMANCE COMPARISON ==========")
+print(comparison)
+
+# Step 11: Confusion Matrix for Linear SVM
+print("\nConfusion Matrix - Linear SVM:")
+print(confusion_matrix(y_test, y_pred_linear))
+
+# Step 12: Confusion Matrix for RBF SVM
+print("\nConfusion Matrix - RBF SVM:")
+print(confusion_matrix(y_test, y_pred_rbf))
+
+# Step 13: Display Best Performing Model
+if accuracy_score(y_test, y_pred_linear) > accuracy_score(y_test, y_pred_rbf):
+    print("\nLinear SVM performs better.")
+elif accuracy_score(y_test, y_pred_linear) < accuracy_score(y_test, y_pred_rbf):
+    print("\nRBF SVM performs better.")
+else:
+    print("\nBoth models have equal accuracy.")
+
+print("\nAssignment 6 Completed Successfully!")
