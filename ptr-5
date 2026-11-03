@@ -1,0 +1,175 @@
+# PRACTICAL 5: BINARY CLASSIFICATION USING LOGISTIC REGRESSION
+
+# 1. Import Required Libraries
+import pandas as pd
+import zipfile
+import urllib.request
+import io
+
+from sklearn.model_selection import train_test_split
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    confusion_matrix,
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score
+)
+
+# 2. Load the Dataset
+url = "https://archive.ics.uci.edu/ml/machine-learning-databases/00222/bank.zip"
+
+data = urllib.request.urlopen(url).read()
+
+with zipfile.ZipFile(io.BytesIO(data)) as z:
+    df = pd.read_csv(z.open("bank-full.csv"), sep=";")
+
+print("Dataset:")
+print(df.head())
+
+# 3. Dataset Information
+print("\nDataset Information:")
+df.info()
+
+# 4. Check Target Variable
+print("\nTarget Variable:")
+print(df['y'].value_counts())
+
+# 5. Separate Features and Target
+X = df.drop(columns=['y', 'duration'])
+y = df['y']
+
+# 6. Convert Target into Numerical Form
+y = y.map({'no': 0, 'yes': 1})
+
+# 7. Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.20,
+    random_state=42,
+    stratify=y
+)
+
+# 8. Define Categorical Features
+categorical_cols = [
+    'job',
+    'marital',
+    'education',
+    'default',
+    'housing',
+    'loan',
+    'contact',
+    'month',
+    'poutcome'
+]
+
+# 9. Define Numerical Features
+numeric_cols = [
+    'age',
+    'balance',
+    'day',
+    'campaign',
+    'pdays',
+    'previous'
+]
+
+# 10. Encoding and Scaling
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), numeric_cols),
+        ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_cols)
+    ]
+)
+
+# 11. Transform Training and Testing Data
+X_train_encoded = preprocessor.fit_transform(X_train)
+X_test_encoded = preprocessor.transform(X_test)
+
+# 12. Create Logistic Regression Model
+model = LogisticRegression(max_iter=1000)
+
+# 13. Train the Model
+model.fit(X_train_encoded, y_train)
+
+# 14. Make Predictions
+y_pred = model.predict(X_test_encoded)
+
+# 15. Compare Actual and Predicted Values
+comparison = pd.DataFrame({
+    'Actual': y_test.values,
+    'Predicted': y_pred
+})
+
+print("\nActual vs Predicted Values:")
+print(comparison.head(10))
+
+# 16. Confusion Matrix
+cm = confusion_matrix(y_test, y_pred)
+
+TN, FP, FN, TP = cm.ravel()
+
+print("\nConfusion Matrix:")
+print(cm)
+
+# 17. Confusion Matrix Table
+confusion_table = pd.DataFrame(
+    [
+        [f"TP = {TP}", f"FN = {FN}"],
+        [f"FP = {FP}", f"TN = {TN}"]
+    ],
+    index=['Actual Yes (1)', 'Actual No (0)'],
+    columns=['Predicted Yes (1)', 'Predicted No (0)']
+)
+
+print("\nConfusion Matrix Table:")
+print(confusion_table)
+
+# 18. Calculate Precision
+precision = precision_score(y_test, y_pred)
+print("\nPrecision =", precision)
+
+# 19. Calculate Recall
+recall = recall_score(y_test, y_pred)
+print("Recall =", recall)
+
+# 20. Calculate F1-score
+f1 = f1_score(y_test, y_pred)
+print("F1-score =", f1)
+
+# 21. Calculate Accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy =", accuracy)
+print("Accuracy (%) =", accuracy * 100)
+
+# 22. Final Performance Table
+metrics_table = pd.DataFrame({
+    'Metric': ['Accuracy', 'Precision', 'Recall', 'F1-score'],
+    'Value': [accuracy, precision, recall, f1],
+    'Percentage': [
+        accuracy * 100,
+        precision * 100,
+        recall * 100,
+        f1 * 100
+    ]
+})
+
+print("\nFinal Performance Table:")
+print(metrics_table)
+
+# 23. Final Observation
+print("\nOBSERVATION:")
+print("1. Logistic Regression achieved approximately 89.33% accuracy.")
+print("2. Precision was approximately 66.32%.")
+print("3. Recall was approximately 17.86%.")
+print("4. F1-score was approximately 28.15%.")
+print("5. Accuracy alone is not sufficient for imbalanced datasets.")
+
+# 24. Conclusion
+print("\nCONCLUSION:")
+print("Binary classification using Logistic Regression was")
+print("successfully implemented on the Bank Marketing dataset.")
+print("The model was evaluated using confusion matrix, accuracy,")
+print("precision, recall and F1-score.")
