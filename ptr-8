@@ -1,0 +1,87 @@
+# Experiment No. 8 – DBSCAN Clustering
+
+# Import required libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import DBSCAN
+
+# Download Mall Customers dataset
+url = "https://raw.githubusercontent.com/kennedykwangari/Mall-Customer-Segmentation-Data/master/Mall_Customers.csv"
+df = pd.read_csv(url)
+
+# Display dataset
+print("First 5 Rows of Dataset:")
+print(df.head())
+
+# Select features
+X = df[["Annual Income (k$)", "Spending Score (1-100)"]]
+
+# Feature Scaling
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Apply DBSCAN Clustering
+model = DBSCAN(eps=0.4, min_samples=4)
+labels = model.fit_predict(X_scaled)
+
+# Count clusters and noise points
+n_clusters = len(set(labels) - {-1})
+n_noise = (labels == -1).sum()
+
+print("\nNumber of Clusters:", n_clusters)
+print("Number of Noise Points:", n_noise)
+
+# Plot Original Dataset
+plt.figure(figsize=(7, 5))
+plt.scatter(X.iloc[:, 0], X.iloc[:, 1], s=30)
+plt.xlabel("Annual Income (k$)")
+plt.ylabel("Spending Score (1-100)")
+plt.title("Original Mall Customers Dataset")
+plt.show()
+
+# Plot DBSCAN Clustering Results
+noise = labels == -1
+clusters = labels != -1
+
+plt.figure(figsize=(7, 5))
+
+# Plot clusters
+plt.scatter(
+    X_scaled[clusters, 0],
+    X_scaled[clusters, 1],
+    c=labels[clusters],
+    cmap="viridis",
+    s=30,
+    label="Clusters"
+)
+
+# Plot noise points
+plt.scatter(
+    X_scaled[noise, 0],
+    X_scaled[noise, 1],
+    c="black",
+    marker="x",
+    s=60,
+    label="Noise Points"
+)
+
+plt.xlabel("Standardized Annual Income")
+plt.ylabel("Standardized Spending Score")
+plt.title("DBSCAN Clustering on Mall Customers")
+plt.legend()
+plt.show()
+
+# Display cluster-wise observations
+print("\nCluster-wise Analysis:")
+
+for cluster in sorted(set(labels)):
+    cluster_data = X[labels == cluster]
+
+    if cluster == -1:
+        print("\nNoise Points:", len(cluster_data))
+    else:
+        print("\nCluster", cluster)
+        print("Number of Customers:", len(cluster_data))
+        print("Average Annual Income:", round(cluster_data.iloc[:, 0].mean(), 2))
+        print("Average Spending Score:", round(cluster_data.iloc[:, 1].mean(), 2))
