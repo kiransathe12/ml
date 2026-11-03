@@ -1,0 +1,77 @@
+# Assignment 7: K-Means Clustering using Elbow Method
+import pandas as pd
+import urllib.request
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+
+# Download Dataset Automatically
+url = "https://raw.githubusercontent.com/MahimaSriK/Mall-Customer-Segmentation-Dataset/main/Mall_Customers.csv"
+urllib.request.urlretrieve(url, "Mall_Customers.csv")
+
+# Load Dataset
+df = pd.read_csv("Mall_Customers.csv")
+
+# Display Dataset
+print("First 5 Rows of Dataset:")
+print(df.head())
+
+# Select Features
+X = df[['Annual Income (k$)', 'Spending Score (1-100)']]
+
+# Feature Scaling
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Elbow Method
+wcss = []
+for k in range(1, 11):
+    model = KMeans(n_clusters=k, random_state=42, n_init=10)
+    model.fit(X_scaled)
+    wcss.append(model.inertia_)
+
+# Display WCSS Values
+print("\nWCSS Values:")
+for k, value in enumerate(wcss, start=1):
+    print(f"K = {k}, WCSS = {value:.2f}")
+
+# Plot Elbow Curve
+plt.figure(figsize=(8, 5))
+plt.plot(range(1, 11), wcss, marker='o')
+plt.xlabel('Number of Clusters (K)')
+plt.ylabel('WCSS')
+plt.title('Elbow Method')
+plt.xticks(range(1, 11))
+plt.grid(True)
+plt.show()
+
+# Apply K-Means with Optimal K = 5
+optimal_k = 5
+kmeans = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
+df['Cluster'] = kmeans.fit_predict(X_scaled)
+
+# Visualize Customer Clusters
+plt.figure(figsize=(8, 5))
+plt.scatter(X['Annual Income (k$)'], X['Spending Score (1-100)'], c=df['Cluster'], cmap='viridis')
+plt.xlabel('Annual Income (k$)')
+plt.ylabel('Spending Score (1-100)')
+plt.title('Customer Segmentation using K-Means')
+plt.colorbar(label='Cluster')
+plt.grid(True)
+plt.show()
+
+# Display Cluster Information
+print("\nCustomer Cluster Details:")
+print(df.groupby('Cluster').agg({
+    'Annual Income (k$)': 'mean',
+    'Spending Score (1-100)': 'mean',
+    'CustomerID': 'count'
+}).rename(columns={
+    'Annual Income (k$)': 'Average Annual Income',
+    'Spending Score (1-100)': 'Average Spending Score',
+    'CustomerID': 'Number of Customers'
+}))
+
+# Final Output
+print("\nOptimal Number of Clusters:", optimal_k)
+print("K-Means Clustering Completed Successfully!")
